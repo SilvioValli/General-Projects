@@ -2,7 +2,7 @@
 A R package designed to "play" with DNA and RNA sequences. 
 <br />
 <br />
-You will find 8 different functions: 
+You will find 9 different functions: 
 <ul>
  <li><b>"generate_sequence(<i>len, type</i>)" :</b> function to generate a random, uppercase DNA or RNA sequence of a given length.</li>
 <img src="https://i.imgur.com/FCUROtx.png" height="50%" width="40%" alt=""/>
@@ -12,6 +12,7 @@ You will find 8 different functions:
    <li><b>"transcribe(<i>string</i>)" :</b> function to transcribe a DNA sequence into the correpsonding RNA sequence.</li>
   <img src="https://i.imgur.com/GLYYR14.png" height="50%" width="35%" alt=""/>
     <li><b>"reverse_transcribe(<i>string</i>)" :</b> function to transcribe a RNA sequence into the correpsonding DNA sequence.</li>
+ <img src="https://i.imgur.com/T5kDMJk.png" height="50%" width="25%" alt=""/>
      <li><b>"complement_reverse(<i>string</i>)" :</b> function to first compute the complement of a DNA or RNA sequence and then reverse it.</li> 
    <img src="https://i.imgur.com/Tk7oyNH.png" height="50%" width="40%" alt=""/>
     <li><b>"GC_content(<i>string</i>)" :</b> function to compute the GC content of a DNA or RNA string.</li> 
@@ -25,11 +26,6 @@ You will find 8 different functions:
 <li><b>"seq_toprotein(<i>x, len_abbreviation</i>)" :</b> function to obtain the corresponding protein sequence of DNA or RNA strings.</li>
   <img src="https://i.imgur.com/dmpP835.png" height="50%" width="90%" alt=""/>
 </ul>
-
-
-
-<br />
-
 
 <h2>Languages and Utilities Used</h2>
 - <b>R</b>
