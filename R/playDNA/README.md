@@ -1,5 +1,5 @@
 <h2>Description</h2>
-A R package designed to "play" with DNA and RNA sequences. 
+A R package designed to "play" with DNA and RNA sequences : "https://www.youtube.com/watch?v=9HLDXlmJ6AA&t=5s"
 <br />
 <br />
 You will find 9 different functions: 
