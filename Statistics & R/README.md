@@ -1,4 +1,4 @@
-<h1>General "Statistics & R" Projects</h1>
+<h1>Statistics & R -  Projects</h1>
 
 <h2>Description</h2>
 A series of “mini-projects” made with R about statistical topics applied to the biological/biomedical domain
