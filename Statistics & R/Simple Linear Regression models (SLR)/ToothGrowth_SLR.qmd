@@ -1,0 +1,377 @@
+---
+title: "ToothGrowth_SLR Analysis"
+format: pdf
+editor: visual
+---
+
+## Introduction
+
+This is a statistical study of the `ToothGrowth` data set. In particular we will try to fit a `(simple and multiple) linear model` to the data and perform the most important tests for the statistical inference on the data set.
+
+```{r}
+data("ToothGrowth")
+db <- ToothGrowth
+str(db)
+```
+
+## BEFORE -\> Simple Linear Regression Model
+
+### Assumptions
+
+In order to create a simple linear regression model on our data set we need to state the assumptions and check for their respectability. We are going to use "len" as the dependent variable and "dose" as the independent one. Let's write down the assumptions:
+
+1.  **EXISTENCE:** for any fixed value of the variable X, Y is a random variable with a certain probability distribution having `finite mean` and `finite variance`. ✅
+2.  **LINEARITY:** the mean value of Y (or a transformation of Y), 𝝁_Y\|X =E(Y), is a `straight-line function` of X (or a transformation of X). ❓
+3.  **INDEPENDENCE:** the errors, 𝜖_i, are `independent` (i.e. Y-values are statistically independent of one another). ✅
+4.  **HOMOSCEDAISTICITY:** the errors, 𝜖_i, at each value of the predictor, x_i, have `equal variance` (i.e., the variance of Y is the same for any X). ❓
+5.  **NORMALITY:** the errors, 𝜖_i, at each value of the predictor, x_i, are `normally distributed` (i.e., for any fixed value of X, Y has a normal distribution). ❓
+
+By the design of study we know that the Y values, namely the observations are independent to each other (3rd assumption met) and that for any fixed value of X, the sub-population of Y has a finite variance and finite mean (1st assumption met).
+
+We are going to check if there really exist a linear relationship between the 2 variables and we are going to investigate the normality of the residuals and their homoscedaisticity.
+
+### Residuals
+
+First of all we need to compute the residuals "Y-Y_hat" where "Y_hat" is the predicted value of Y by our simple linear model.
+
+```{r}
+fit <- lm(len ~ dose, data = db)
+res <- residuals (fit)
+db$residuals_dose <- res
+head(db$residuals_dose)
+```
+
+### Homoscedaisticity
+
+Let's check the equal variance of the residuals, namely for any fixed value of X the variances of Y, so 𝜎\^2_Y\|X, must be equal. We can check this assumption by using a `visual interpretation` (box-plot) or by using a statistical test like `studentized Breusch-Pagan test`.
+
+```{r}
+boxplot(resid(fit) ~ db$dose,
+        xlab = "Dose",
+        ylab = "Residuals",
+        main = "Residuals by Dose")
+```
+
+By observing the box-plots we are not able to deduce the homoscedaisticity of the data but we can observe a pretty equal distribution of the data around the mean for each group.
+
+Let's go through the Breusch-Pagan test which aim is to identify the presence of heteroscedaisticity inj a regression analysis.
+
+```{r}
+#| message: false
+#| warning: false
+library(lmtest)
+bptest(fit)
+```
+
+Since the **p-value = 0.2435** is greater than **0.05**, we fail to reject the null hypothesis. This means there is `no significant evidence` of heteroscedasticity in the model.
+
+### Normality
+
+Check the 5th assumption, namely the normality of our residuals through a the `Shapiro-Wilk` statistical test. Since the size of our samples are \< 50 observations this is the most suited test for our purpose.
+
+```{r}
+res_by_dose <- split(db, db$dose)
+for (group in res_by_dose){
+  result <- shapiro.test(group$residuals_dose)
+  print(paste(" '",unique(group$dose),"' -> p-value: ", result$p.value," ", sep=""))
+}
+```
+
+For all the fixed value of X, Y has a normal distribution, since the `p-value > 0.05` for every population of Y given X analyzed. ✅
+
+```{r}
+qqnorm(db$residuals_dose)
+qqline(db$residuals_dose, col = "red")
+```
+
+## RUN -\> Simple Linear Regression Model
+
+Now that we have checked most of the assumptions let's build the linear model and check for linearity.
+
+We will start with a simple linear model `y = 𝛃0 + 𝛃1*x + 𝝐` using `dose` as the variable"x".
+
+```{r}
+fit <- lm(len ~ dose, data = db)
+```
+
+```{r}
+coefs <- coef(fit)
+print(coefs)
+```
+
+```{r}
+confint(fit, level = 0.95)
+```
+
+### 𝛃0 - C.I.
+
+Is the intercept and in that case it represents the mean value of the length of the odontoblasts at x(dose) = 0. To find this value we are extrapolating since in our data set we do not have observations with a value of dose = 0. Since extrapolation with SLR is not a reliable method we do not care about the meaning of the intercept in the real world.
+
+-   [95% Confidence Interval]{.underline} = 7.42 ± 2.52
+
+### 𝛃1 - Linearity
+
+We are going to run an hypothesis testing on the parameter Beta1 to check whether there exist a linear relationship between the dependent variable Y and the independent variable X (dose).
+
+-   **H0:** beta1 = 0 -\> no linear relationship
+
+-   **H1:** beta1 != 0 -\> presence of a linear relationship between Y and X
+
+From the theory we know that if all the previous assumptions are met (normality, independence, existence and homoscedaisticity) then the estimate of the parameter 𝛃1(namely beta1_hat) is a random variable described by a `t-distribution` with "n-2" degrees of freedom. So, let's compute the t-statistic.
+
+![](images/clipboard-2692881885.png){width="195"}
+
+```{r}
+coefs
+beta1_hat <- as.numeric(coefs[2])
+summary(fit)
+```
+
+With a `p-value = 1.23e_14 <<< 0.05` we reject H0 and state that the true population parameter 𝛃1 != 0.
+
+#### F-Test
+
+**IMPORTANT NOTE:** We could have reached the same result by observing the p-value computed for the F-test applied to the ratio of variances **MSM** (mean square of the model) / **MSE** (mean square of the errors), which under the null-hypothesis is equal to 1. In this context the F-test is used to test if the model including covariate(s) (in our case only the covariate "dose") results in a significant reduction of the residual sum squares (SSR) compared to a model containing only an intercept (𝛃1=0).
+
+[For SLR models the "t-test" and the "F-test" are equivalent for testing H0: 𝛃1=0.]{.underline}
+
+```{r}
+summary(fit)$fstatistic
+```
+
+```{r}
+fstat <- summary(fit)$fstatistic
+f_value <- fstat[1]
+df1 <- fstat[2]
+df2 <- fstat[3]
+pf(f_value, df1, df2, lower.tail = FALSE)
+```
+
+The p-value for the F-statistic is 1.23e-14 \< 0.05 so the test is statistically significant and we reject the null hypothesis H0: 𝛃1=0.
+
+### 𝛃1 - C.I.
+
+Let's build the confidence interval.
+
+```{r}
+confint(fit, level = 0.95)
+```
+
+-   [95% Confidence Interval]{.underline} = 9.76 ± 1.91
+
+In that way we have both find the best estimates of the parameters 𝛃0 and 𝛃1 and checked for the linearity of the data.
+
+### Resulting fitting line
+
+The resulting fitting line is described by the following equation: **Y_i_hat = 7.42 + 9.76** ⋅ **X_i**
+
+```{r}
+plot(db$dose, db$len,
+     main = "Length vs Dose",
+     xlab = "Dose",
+     ylab = "Length")
+abline(fit, col = "red", lwd = 2)
+intercept <- round(coefs[1], 2)
+slope <- round(coefs[2], 2)
+eq_text <- paste0("y_hat = ", intercept, " + ", slope, " * x")
+x_pos <- 1.5
+y_pos <- intercept + slope * x_pos
+text(x = x_pos, y = min(db$len), labels = eq_text, pos = 3, col = "red")
+```
+
+### Goodness of fit
+
+How much variation of the values of the dependent variable Y ,the independent variable X is able to explain? To answer this question we are going to compute the Adjusted R\^2 value.
+
+```{r}
+fit <- lm(len ~ dose, data = db)
+summary(fit)
+```
+
+The value that we are interested in is the `"Adjusted R-squared"` which in this case is `0.6382` namely the independent variable "dose" is able to explain the **63.82%** of the variability in Y. A pretty good job for a single independent variable.
+
+#### Pearson Correlation coefficient
+
+From the theory behind SLR models we know that the `R^2` is equal to the square of the `Pearson Correlation coefficient`.
+
+```{r}
+pearson <- cor(db$dose, db$len, method = "pearson")
+pearson^2
+```
+
+```{r}
+summary(fit)$r.squared 
+```
+
+## Jackknife residuals
+
+Jackknife residuals are a type of residual used in regression diagnostics to better detect outliers and influential points. They are also used to evaluate the violations of the assumptions of SLR.
+
+```{r}
+jk_res <- rstudent(fit)
+hist_data <- hist(jk_res, 
+                  probability = TRUE,  # scales y-axis to density
+                  main = "Histogram of Jackknife Residuals with Normal Curve",
+                  xlab = "Jackknife Residuals",
+                  col = "lightblue", 
+                  border = "black")
+
+curve(dnorm(x, mean = mean(jk_res), sd = sd(jk_res)), 
+      col = "red", 
+      lwd = 2, 
+      add = TRUE)
+```
+
+```{r}
+plot(ppoints(length(jk_res)),
+     sort(pnorm(jk_res)),
+     ylab = "Observed Cumulative Probability",
+     xlab = "Expected Cumulative Probability",
+     main = "Normal Probability plot with Jackknife res")
+abline(a=0, b=1, col='red', lwd=1)
+```
+
+Analyzing the graphs it can be stated that the jackknife residuals are `approximately normal distributed` since the data points in the middle of the "Normal Probability plot" does not fall exactly on the identity line.
+
+```{r}
+plot(db$dose, jk_res,
+     ylab = "Jackknife residuals",
+     xlab = "Predictor",
+     main = "Residual Scatter Plot",
+     xlim = c(min(db$dose)-5*sd(db$dose), max(db$dose)+5*sd(db$dose)))
+abline(a=0, b=0, lty=2)
+```
+
+This kind of diagnostic plot is generally used to evaluate the homoscedaisticty of a variable. In that case, due to the poor number of values for the predictor it is not easy to detect an heteroscedaisticity. Analyzing this graph is not enough to asses something about the variance of Y given X.
+
+## Linear Algebra in
+
+We know that a general simple linear regression equation like `y = 𝛃0 + 𝛃1*x1 + ... + 𝛃_n*xn + 𝝐` can be written using linear algebra notation: `Y = X*𝛃_hat +𝝐` . In particular:
+
+-   `Y`: is the column matrix composed of the observed value in our data set
+
+-   `X`: is the [design matrix]{.underline}, namely a m\*(n+1) matrix where "m" is the number of observations in our data set and "n" is the number of independent variables in our linear regression model. In the case of SLR we have only 1 independent variable so X is a "m by 2" matrix.
+
+-   `𝛃_hat` : is the column vector composed of the estimate of the true population parameters.
+
+### Y
+
+```{r}
+head(db)
+len_values <- db$len
+Y <- matrix(len_values)
+print(Y)
+```
+
+### Design matrix X
+
+```{r}
+dose_values <- db$dose
+X <- matrix(c(rep(1, length(Y)), dose_values), ncol = 2)
+print(X)
+```
+
+### Beta hat
+
+```{r}
+beta_hat_vec <- solve(crossprod(X)) %*% crossprod(X,Y)
+beta_hat_vec
+```
+
+```{r}
+print(beta_hat_vec[1]) # is the estimate of the parameter Beta0
+```
+
+```{r}
+print(beta_hat_vec[2]) # is the estimate of the parameter Beta1
+```
+
+Let's check with the "lm()" function
+
+```{r}
+fit <- lm(len ~ dose, data = db)
+summary(fit)$coefficients
+```
+
+### MSE
+
+![](images/clipboard-3898420665.png)
+
+Using this formula we can compute the MSE, namely the estimate of the variance of Y \| X.
+
+```{r}
+mse <- (crossprod(Y) - t(beta_hat_vec) %*% crossprod(X,Y)) / (length(Y)-1-1)
+mse
+```
+
+### Variance Covariance matrix
+
+We need to compute the variance covariance matrix for the parameters Beta in order to get their variances and then compute the t statistic for the hypothesis testing on them.
+
+![](images/clipboard-3704027554.png)
+
+```{r}
+sigma_mat <- as.numeric(mse) *  solve(crossprod(X)) 
+print(sigma_mat)
+```
+
+```{r}
+print(sigma_mat[1,1]) # Variance of the parameter Beta0
+```
+
+```{r}
+print(sigma_mat[2,2]) # Variance of the parameter Beta1
+```
+
+### Variance of Beta1
+
+We need to extract the variance of the estimate of beta1 from the variance covariance matrix
+
+```{r}
+c_vec <- matrix(c(0,1), nrow = 1)
+beta1_var <- as.numeric(c_vec %*% sigma_mat %*% t(c_vec))
+print(beta1_var)
+```
+
+The same variance can be computed using this formula where "c_vec" is the vector used to extract the beta1 values.
+
+![](images/clipboard-4229428868.png)
+
+```{r}
+c_vec %*% solve(crossprod(X)) %*% t(c_vec) %*% as.numeric(mse)
+```
+
+### T - statistic
+
+Once we have the variance of the estimated parameter Beta1 we can compute the `t-statistic`.
+
+```{r}
+t_stat <- beta1_hat / sqrt(beta1_var)
+print(t_stat)
+```
+
+Compute the `p-value` for that t-statistic.
+
+```{r}
+2 * (1 - pt(t_stat, df = length(Y)-1-1))
+```
+
+```{r}
+summary(fit)$coefficients
+```
+
+By comparison with the t-statistic (t-value) and the p-value (Pr(\>\|t\|)) we can see that we have reached the same conclusion nonetheless we have used linear algebra operations.
+
+### C.I. for Beta1
+
+```{r}
+lci <- beta1_hat - qt(0.975, df = length(Y)-2) * sqrt(beta1_var)
+uci <- beta1_hat + qt(0.975, df = length(Y)-2) * sqrt(beta1_var)
+print(paste(lci, " - ", uci))
+```
+
+The same confidence interval that we have observed using the "lm()" function.
+
+```{r}
+confint(fit, level = 0.95)[2,] #confidence interval computed for the parameter Beta1
+```
